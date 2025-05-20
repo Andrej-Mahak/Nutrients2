@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutrientAI - Smart Nutrition Recommendations</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #8BC34A;
+            --dark: #2E7D32;
+            --light: #F1F8E9;
+            --accent: #FF9800;
+            --error: #F44336;
+            --text-dark: #212121;
+            --text-light: #FAFAFA;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background-color: var(--primary);
+            color: var(--text-light);
+            padding: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo svg {
+            margin-right: 10px;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        
+        nav ul li {
+            margin-left: 20px;
+        }
+        
+        nav ul li a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        nav ul li a:hover {
+            color: var(--accent);
+        }
+        
+        .hero {
+            padding: 60px 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+        
+        .hero p {
+            font-size: 18px;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            color: var(--text-dark);
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary);
+            color: var(--text-light);
+            padding: 12px 30px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background-color: var(--dark);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--primary);
+        }
+        
+        .main {
+            padding: 40px 0;
+        }
+        
+        .form-container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-section h2 {
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkbox-item input {
+            margin-right: 5px;
+        }
+        
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .tab-btn.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .nutrient-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .nutrient-table th, .nutrient-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        .nutrient-table th {
+            background-color: var(--secondary);
+            color: var(--text-light);
+        }
+        
+        .nutrient-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .recommendations {
+            margin-top: 40px;
+        }
+        
+        .recommendations h2 {
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+        
+        .food-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .food-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .food-img {
+            height: 150px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+        }
+        
+        .food-info {
+            padding: 15px;
+        }
+        
+        .food-info h3 {
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .food-info p {
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .food-info .nutrient-match {
+            color: var(--primary);
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar .fill {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        footer {
+            background-color: var(--dark);
+            color: var(--text-light);
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+        
+        footer .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+        }
+        
+        footer h3 {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        footer ul {
+            list-style: none;
+        }
+        
+        footer ul li {
+            margin-bottom: 10px;
+        }
+        
+        footer ul li a {
+            color: var(--text-light);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        footer ul li a:hover {
+            color: var(--accent);
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 20px;
+            margin-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .hero h1 {
+                font-size: 32px;
+            }
+            
+            .hero p {
+                font-size: 16px;
+            }
+            
+            nav ul {
+                display: none; /* For mobile menu toggle */
+            }
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 15px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                NutrientAI
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Home</a></li>
+                    <li><a href="#">How It Works</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Optimize Your Nutrition with AI</h1>
+            <p>Our smart algorithm analyzes your current nutrient levels and body composition to recommend the perfect foods to meet your health goals.</p>
+            <a href="#nutrient-form" class="btn">Get Started</a>
+        </div>
+    </section>
+
+    <main class="main" id="nutrient-form">
+        <div class="container">
+            <div class="form-container">
+                <div class="tab-container">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="profile">Body Profile</button>
+                        <button class="tab-btn" data-tab="nutrients">Current Nutrients</button>
+                        <button class="tab-btn" data-tab="goals">Health Goals</button>
+                    </div>
+                    
+                    <div id="profile" class="tab-content active">
+                        <div class="form-section">
+                            <h2>Your Body Composition</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="weight">Weight (kg)</label>
+                                    <input type="number" id="weight" name="weight" min="30" max="300" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="height">Height (cm)</label>
+                                    <input type="number" id="height" name="height" min="100" max="250">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="age">Age</label>
+                                    <input type="number" id="age" name="age" min="1" max="120">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gender">Gender</label>
+                                    <select id="gender" name="gender">
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bodyFat">Body Fat % (optional)</label>
+                                    <input type="number" id="bodyFat" name="bodyFat" min="2" max="60" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="activityLevel">Activity Level</label>
+                                    <select id="activityLevel" name="activityLevel">
+                                        <option value="sedentary">Sedentary (little to no exercise)</option>
+                                        <option value="light">Light (1-3 days/week)</option>
+                                        <option value="moderate" selected>Moderate (3-5 days/week)</option>
+                                        <option value="active">Active (6-7 days/week)</option>
+                                        <option value="very_active">Very Active (2x per day)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn" onclick="nextTab('nutrients')">Next</button>
+                        </div>
+                    </div>
+                    
+                    <div id="nutrients" class="tab-content">
+                        <div class="form-section">
+                            <h2>Current Nutrient Intake</h2>
+                            <p>Enter your average daily nutrient intake based on your monthly report.</p>
+                            
+                            <table class="nutrient-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nutrient</th>
+                                        <th>Current Level</th>
+                                        <th>Unit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Protein</td>
+                                        <td><input type="number" id="protein" name="protein" min="0" step="0.1"></td>
+                                        <td>g/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Calcium</td>
+                                        <td><input type="number" id="calcium" name="calcium" min="0" step="1"></td>
+                                        <td>mg/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Iron</td>
+                                        <td><input type="number" id="iron" name="iron" min="0" step="0.1"></td>
+                                        <td>mg/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Vitamin C</td>
+                                        <td><input type="number" id="vitaminC" name="vitaminC" min="0" step="0.1"></td>
+                                        <td>mg/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Vitamin D</td>
+                                        <td><input type="number" id="vitaminD" name="vitaminD" min="0" step="0.1"></td>
+                                        <td>μg/day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Omega-3</td>
+                                        <td><input type="number" id="omega3" name="omega3" min="0" step="0.1"></td>
+                                        <td>g/day</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div class="form-group">
+                                <label>Dietary Restrictions</label>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vegetarian" name="vegetarian">
+                                        <label for="vegetarian">Vegetarian</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vegan" name="vegan">
+                                        <label for="vegan">Vegan</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="gluten-free" name="gluten-free">
+                                        <label for="gluten-free">Gluten-Free</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="dairy-free" name="dairy-free">
+                                        <label for="dairy-free">Dairy-Free</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="nut-free" name="nut-free">
+                                        <label for="nut-free">Nut-Free</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <button class="btn btn-secondary" onclick="previousTab('profile')">Back</button>
+                                <button class="btn" onclick="nextTab('goals')">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="goals" class="tab-content">
+                        <div class="form-section">
+                            <h2>Your Health Goals</h2>
+                            
+                            <div class="form-group">
+                                <label for="primaryGoal">Primary Goal</label>
+                                <select id="primaryGoal" name="primaryGoal">
+                                    <option value="weight_loss">Weight Loss</option>
+                                    <option value="muscle_gain">Muscle Gain</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="athletic_performance">Athletic Performance</option>
+                                    <option value="general_health">General Health Improvement</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="secondaryGoal">Secondary Goal (optional)</label>
+                                <select id="secondaryGoal" name="secondaryGoal">
+                                    <option value="none">None</option>
+                                    <option value="energy_increase">Increase Energy</option>
+                                    <option value="recovery">Improve Recovery</option>
+                                    <option value="immunity">Boost Immunity</option>
+                                    <option value="skin_health">Better Skin Health</option>
+                                    <option value="mental_clarity">Mental Clarity</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="weeklyTarget">Weekly Target (for weight goals)</label>
+                                <select id="weeklyTarget" name="weeklyTarget">
+                                    <option value="0">Maintenance (0 kg/week)</option>
+                                    <option value="0.25">Slow (0.25 kg/week)</option>
+                                    <option value="0.5">Moderate (0.5 kg/week)</option>
+                                    <option value="1">Aggressive (1 kg/week)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <button class="btn btn-secondary" onclick="previousTab('nutrients')">Back</button>
+                                <button class="btn" id="analyzeBtn" onclick="analyzeNutrition()">Analyze & Recommend</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="loader" id="loader">
+                    <div class="spinner"></div>
+                    <p>Analyzing your nutrition data...</p>
+                </div>
+                
+                <div class="recommendations" id="recommendations" style="display: none;">
+                    <h2>Your Personalized Food Recommendations</h2>
+                    <p>Based on your current nutrients and goals, we recommend adding these foods to your diet:</p>
+                    
+                    <div class="food-cards" id="foodRecommendations">
+                        <!-- Food recommendations will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-section">
+                <h3>NutrientAI</h3>
+                <p>Smart nutrition recommendations powered by artificial intelligence.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">How It Works</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="#">Nutrition Blog</a></li>
+
